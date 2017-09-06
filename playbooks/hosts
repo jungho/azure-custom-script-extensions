@@ -1,0 +1,8 @@
+[appserver]
+appVm[1:2]
+
+[database]
+dbVm1
+
+[control]
+jumpboxVm ansible_connection=local 

@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "value": "architech"
+        },
+        "adminPassword": {
+            "reference": {
+                "keyVault": {
+                    "id": "/subscriptions/17ef54cf-017b-4bf5-bdb8-90d18438ef14/resourceGroups/architech-training-keyvault-rg/providers/Microsoft.KeyVault/vaults/architech-training-vault"
+                },
+                "secretName": "adminPassword"
+            }
+        },
+        "storageAccessKey": {
+            "reference": {
+                "keyVault": {
+                    "id": "/subscriptions/17ef54cf-017b-4bf5-bdb8-90d18438ef14/resourceGroups/architech-training-keyvault-rg/providers/Microsoft.KeyVault/vaults/architech-training-vault"
+                },
+                "secretName": "storageAccessKey"
+            }
+        },
+        "sshPrivateKey": {
+            "value": "id_rsa"
+        },
+        "sshPubKey": {
+            "value": "id_rsa.pub"
+        },
+        "configureSshAndAnsibleScriptName": {
+            "value": "configureSshAndAnsible.sh"
+        },
+        "ansiblePlaybooks": {
+            "value": "playbooks.tar.gz"
+        },
+        "vnetName": {
+            "value": "architech-training-vnet"
+        },
+        "vnetAddressPrefix": {
+            "value": "192.168.0.0/16"
+        },
+        "appSubnetAddressPrefix": {
+            "value": "192.168.1.0/24"
+        },
+        "dbSubnetAddressPrefix": {
+            "value": "192.168.2.0/24"
+        },
+        "jumpboxSubnetAddressPrefix": {
+            "value": "192.168.3.0/24"
+        },
+        "storageAccountName": {
+            "value": "architechtraining"
+        },
+        "vhdContainerName": {
+            "value": "vhds"
+        },
+        "keyContainerName": {
+            "value": "keys"
+        },
+        "scriptContainerName": {
+            "value": "scripts"
+        },
+        "jumpboxDnsPrefix": {
+            "value": "jumpbox-training-ansible"
+        },
+        "appDnsPrefix": {
+            "value": "architech-training-ansible"
+        }
+    }
+}

@@ -1,0 +1,925 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUserName": {
+            "type": "string",
+            "defaultValue": "architech",
+            "metadata": {
+                "description": "Admin user name for all the VMs"
+            }
+        },
+        "adminPassword": {
+            "defaultValue": null,
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password for all VMs within the private vnet.  See the requirements for password length and characters in the portal."
+            }
+        },
+        "storageAccessKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The storage account access key to retreive the ssh keys."
+            }
+        },
+        "sshPrivateKey": {
+            "type": "string",
+            "defaultValue": "id_rsa",
+            "metadata": {
+                "description": "The name of the ssh private key file."
+            }
+        },
+        "sshPubKey": {
+            "type": "string",
+            "defaultValue": "id_rsa.pub",
+            "metadata": {
+                "description": "The name of the ssh pub key file."
+            }
+        },
+        "configureSshAndAnsibleScriptName": {
+            "type": "string",
+            "defaultValue": "configureSshAndAnsible.sh",
+            "metadata": {
+                "description": "The name of the custom extension script that will install ansible and configure ssh on the host machines."
+            }
+        },
+        "ansiblePlaybooks": {
+            "type": "string",
+            "defaultValue": "playbooks.tar.gz",
+            "metadata": {
+                "description": "The name of the tar.gz archive that contains the ansible playbooks."
+            }
+        },
+        "numberOfAppVms": {
+            "type": "int",
+            "defaultValue": 2,
+            "metadata": {
+                "description": "Number of application VMs to provision"
+            }
+        },
+        "numberOfDbVms": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of database VMs to provision"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "defaultValue": "architechVnet",
+            "metadata": {
+                "description": "Name of the virtual network"
+            }
+        },
+        "vnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The IP Address pool for the virtual network in CIDR format."
+            }
+        },
+        "appSubnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The IP address pool for the application subnet in CIDR format"
+            }
+        },
+        "dbSubnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The IP address pool for the database subnet in CIDR format."
+            }
+        },
+        "jumpboxSubnetAddressPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The IP address pool for the jumpbox subnet in CIDR format."
+            }
+        },
+        "jumpboxDnsPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The DNS prefix to be part of the FQDN for the jumpbox public IP address."
+            }
+        },
+        "appDnsPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The DNS prefox to be part of the FQDN for the application public IP address."
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the storage account for all the OS and Data disks."
+            }
+        },
+        "vhdContainerName": {
+            "type": "string",
+            "defaultValue": "vhds",
+            "metadata": {
+                "description": "The container name in the storage account that stores the vhds."
+            }
+        },
+        "keyContainerName": {
+            "type": "string",
+            "defaultValue": "keys",
+            "metadata": {
+                "description": "The container name in the storage account that stores the ssh keys."
+            }
+        },
+        "scriptContainerName": {
+            "type": "string",
+            "defaultValue": "scripts",
+            "metadata": {
+                "description": "The container name in the storage account that stores the custom extension scripts."
+            }
+        },
+        "appVmSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_A1",
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_A4",
+                "Standard_A5",
+                "Standard_A6",
+                "Standard_A7",
+                "Standard_A8",
+                "Standard_A1_v2",
+                "Standard_A2_v2",
+                "Standard_A4_v2",
+                "Standard_A8_v2",
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14",
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2",
+                "Standard_D4_v2",
+                "Standard_D5_v2",
+                "Standard_D11_v2",
+                "Standard_D12_v2",
+                "Standard_D13_v2",
+                "Standard_D14_v2"
+            ],
+            "defaultValue": "Standard_A1",
+            "metadata": {
+                "description": "App VM size to provision. See https://docs.microsoft.com/en-us/azure/cloud-services/cloud-services-sizes-specs"
+            }
+        },
+        "dbVmSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_A1",
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_A4",
+                "Standard_A5",
+                "Standard_A6",
+                "Standard_A7",
+                "Standard_A8",
+                "Standard_A1_v2",
+                "Standard_A2_v2",
+                "Standard_A4_v2",
+                "Standard_A8_v2",
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14",
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2",
+                "Standard_D4_v2",
+                "Standard_D5_v2",
+                "Standard_D11_v2",
+                "Standard_D12_v2",
+                "Standard_D13_v2",
+                "Standard_D14_v2"
+            ],
+            "defaultValue": "Standard_A1",
+            "metadata": {
+                "description": "DB VM size to provision. https://docs.microsoft.com/en-us/azure/cloud-services/cloud-services-sizes-specs."
+            }
+        },
+        "jumpboxVmSize": {
+            "type": "string",
+            "allowedValues": [
+                "Standard_A1"
+            ],
+            "defaultValue": "Standard_A1",
+            "metadata": {
+                "description": "Jumpbox VM size to provision.  Jumpbox VM size can be the smallest."
+            }
+        }
+    },
+    "variables": {
+        "appAvailabilitySetName": "appAvailabilitySet",
+        "dbAvailabilitySetName": "dbAvailabilitySet",
+        "loadBalancerName": "architechDemoLb",
+        "loadBalancerRef": "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
+        "backendAddressPoolName": "appBackendPool",
+        "appSubnetName": "app",
+        "dbSubnetName": "db",
+        "jumpboxSubnetName": "jumpbox",
+        "appNsgName": "[concat(variables('appSubnetName'), '-nsg')]",
+        "dbNsgName": "[concat(variables('dbSubnetName'), '-nsg')]",
+        "jumpboxNsgName": "[concat(variables('jumpboxSubnetName'), '-nsg')]",
+        "vnetRef": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+        "httpPublicIpName": "httpPublicIp",
+        "jumpboxPublicIpName": "sshPublicIp",
+        "jumpboxVmName": "jumpboxVm",
+        "appVmName": "appVm",
+        "dbVmName": "dbVm",
+        "jumpboxNicName": "jumpboxNic",
+        "appVmNicName": "appNic",
+        "dbVmNicName": "dbNic",
+        "updateDomainCount": 5,
+        "faultDomainCount": 2,
+        "os": {
+            "publisher": "OpenLogic",
+            "offer": "CentOS",
+            "version": "latest",
+            "sku": "7.2"
+        },
+        "storageUriBase": "[concat('https://', parameters('storageAccountName'), '.blob.core.windows.net/')]",
+        "vhdUriBase": "[concat(variables('storageUriBase'), parameters('vhdContainerName'),'/')]",
+        "keyStorageUriBase": "[concat(variables('storageUriBase'), parameters('keyContainerName'), '/')]",
+        "scriptsStorageUriBase": "[concat(variables('storageUriBase'), parameters('scriptContainerName'), '/')]",
+        "appVmExtensionName": "appVmExtension",
+        "dbVmExtensionName": "dbVmExtension",
+        "controlHostExtensionName": "controlHostExtension",
+        "configureSshAndAnsibleScriptUrl": "[concat(variables('scriptsStorageUriBase'), parameters('configureSshAndAnsibleScriptName'))]",
+        "sshPubKeyUrl": "[concat(variables('keyStorageUriBase'), parameters('sshPubKey'))]",
+        "sshPrivateKeyUrl": "[concat(variables('keyStorageUriBase'), parameters('sshPrivateKey'))]",
+        "ansiblePlaybooksUrl": "[concat(variables('scriptsStorageUriBase'), parameters('ansiblePlaybooks'))]",
+        "commandBase": "[concat('bash ', parameters('configureSshAndAnsibleScriptName'), ' -u ', parameters('adminUserName'), ' -k ', parameters('sshPubKey'))]",
+        "controlHostCommand": "[concat(variables('commandBase'), ' -t control ', ' -f ', parameters('ansiblePlaybooks'), ' -p ', parameters('sshPrivateKey'))]",
+        "targetHostCommand": "[concat(variables('commandBase'), ' -t target')]"
+    },
+    "resources": [
+        {
+            "comments": "Availability set for the app VMs",
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('appAvailabilitySetName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformUpdateDomainCount": "[variables('updateDomainCount')]",
+                "platformFaultDomainCount": "[variables('faultDomainCount')]"
+            }
+        },
+        {
+            "comments": "Availability set for the DB VMs",
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[variables('dbAvailabilitySetName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformUpdateDomainCount": "[variables('updateDomainCount')]",
+                "platformFaultDomainCount": "[variables('faultDomainCount')]"
+            }
+        },
+        {
+            "comments": "Application VMs",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('appVmName'), copyIndex(1))]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "appVmLoop",
+                "count": "[parameters('numberOfAppVms')]"
+            },
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('appAvailabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('appVmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('os').publisher]",
+                        "offer": "[variables('os').offer]",
+                        "sku": "[variables('os').sku]",
+                        "version": "[variables('os').version]"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('appVmName'),'-osDisk', copyIndex(1))]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat(variables('vhdUriBase'), variables('appVmName'), copyIndex(1), '-OS.vhd')]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "name": "[concat(variables('appVmName'),'-disk-Data')]",
+                            "diskSizeGB": "1023",
+                            "createOption": "Empty",
+                            "lun": 0,
+                            "vhd": {
+                                "uri": "[concat(variables('vhdUriBase'), variables('appVmName'), copyIndex(1), '-Data.vhd')]"
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('appVmName'), copyIndex(1))]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('appVmNicName'), copyIndex(1)))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('appAvailabilitySetName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('appVmNicName'), copyIndex(1)))]"
+            ],
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "[concat(variables('appVmExtensionName'), copyIndex(1))]",
+                    "apiVersion": "2015-06-15",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('appVmName'), copyIndex(1)))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": false,
+                        "forceUpdateTag": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('configureSshAndAnsibleScriptUrl')]",
+                                "[variables('sshPubKeyUrl')]"
+                            ],
+                            "commandToExecute": "[variables('targetHostCommand')]"
+                        },
+                        "protectedSettings": {
+                            "storageAccountKey": "[parameters('storageAccessKey')]",
+                            "storageAccountName": "[parameters('storageAccountName')]"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "comments": "DB Virtual Machines",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('dbVmName'), copyIndex(1))]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "dbVmLoop",
+                "count": "[parameters('numberOfDbVms')]"
+            },
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('dbAvailabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('dbVmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('os').publisher]",
+                        "offer": "[variables('os').offer]",
+                        "sku": "[variables('os').sku]",
+                        "version": "[variables('os').version]"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('dbVmName'),'-disk-OS')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat(variables('vhdUriBase'), variables('dbVmName'), copyIndex(1), '-OS.vhd')]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "name": "[concat(variables('dbVmName'),'-disk-Data')]",
+                            "diskSizeGB": "1023",
+                            "createOption": "Empty",
+                            "lun": 0,
+                            "vhd": {
+                                "uri": "[concat(variables('vhdUriBase'), variables('dbVmName'), copyIndex(1), '-Data.vhd')]"
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('dbVmName'), copyIndex(1))]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('dbVmNicName'), copyIndex(1)))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "[concat(variables('dbVmExtensionName'), copyIndex(1))]",
+                    "apiVersion": "2015-06-15",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('dbVmName'), copyIndex(1)))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": false,
+                        "forceUpdateTag": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('configureSshAndAnsibleScriptUrl')]",
+                                "[variables('sshPubKeyUrl')]"
+                            ],
+                            "commandToExecute": "[variables('targetHostCommand')]"
+                        },
+                        "protectedSettings": {
+                            "storageAccountKey": "[parameters('storageAccessKey')]",
+                            "storageAccountName": "[parameters('storageAccountName')]"
+                        }
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('dbAvailabilitySetName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('dbVmNicName'), copyIndex(1)))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('jumpboxVmName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('jumpboxVmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('os').publisher]",
+                        "offer": "[variables('os').offer]",
+                        "sku": "[variables('os').sku]",
+                        "version": "[variables('os').version]"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('jumpboxVmName'), '-OsDisk')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat(variables('vhdUriBase'), variables('jumpboxVmName'), '-OS.vhd')]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "name": "[concat(variables('jumpboxVmName'),'-disk-Data')]",
+                            "diskSizeGB": "512",
+                            "createOption": "Empty",
+                            "lun": 0,
+                            "vhd": {
+                                "uri": "[concat(variables('vhdUriBase'), variables('jumpboxVmName'), '-Data.vhd')]"
+                            }
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('jumpboxVmName'))]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('jumpboxNicName'))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "[variables('controlHostExtensionName')]",
+                    "apiVersion": "2015-06-15",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', variables('jumpboxVmname'))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": false,
+                        "forceUpdateTag": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('configureSshAndAnsibleScriptUrl')]",
+                                "[variables('ansiblePlaybooksUrl')]",
+                                "[variables('sshPrivateKeyUrl')]",
+                                "[variables('sshPubKeyUrl')]"
+                            ],
+                            "commandToExecute": "[variables('controlHostCommand')]"
+                        },
+                        "protectedSettings": {
+                            "storageAccountKey": "[parameters('storageAccessKey')]",
+                            "storageAccountName": "[parameters('storageAccountName')]"
+                        }
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('jumpboxNicName'))]"
+            ]
+        },
+        {
+            "comments": "The external load balancer.",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('loadBalancerName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerFrontEnd",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('httpPublicIpName'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('backendAddressPoolName')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "HTTPLbRule",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancerRef'), '/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                            },
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 4,
+                            "protocol": "Tcp",
+                            "loadDistribution": "Default",
+                            "backendAddressPool": {
+                                "id": "[concat(variables('loadBalancerRef'), '/backendAddressPools/', variables('backendAddressPoolName'))]"
+                            },
+                            "probe": {
+                                "id": "[concat(variables('loadBalancerRef'), '/probes/externalLbProbe')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "externalLbProbe",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 80,
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 5
+                        }
+                    }
+                ]
+            },
+            "resources": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('httpPublicIpName'))]"
+            ]
+        },
+        {
+            "comments": "The network interfaces that will be associated with the app VMs.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('appVmNicName'), copyIndex(1))]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "nicLoop",
+                "count": "[parameters('numberOfAppVms')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[concat(variables('vnetRef'), '/subnets/', variables('appSubnetName'))]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(variables('loadBalancerRef'), '/backendAddressPools/', variables('backendAddressPoolName'))]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appNsgName'))]"
+                }
+            },
+            "resources": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancerName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appNsgName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('dbVmNicName'), copyIndex(1))]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "dbNicLoop",
+                "count": "[parameters('numberOfDbVms')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[concat(variables('vnetRef'), '/subnets/', variables('dbSubnetName'))]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('dbNsgName'))]"
+                }
+            },
+            "resources": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('dbNsgName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('jumpboxNicName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxPublicIpName'))]"
+                            },
+                            "subnet": {
+                                "id": "[concat(variables('vnetRef'), '/subnets/', variables('jumpboxSubnetName'))]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName'))]"
+                }
+            },
+            "resources": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpboxPublicIpName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('dbNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "allow-from-frontend-subnet",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "[parameters('appSubnetAddressPrefix')]",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-ssh-from-jumpbox-subnet",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "[parameters('jumpboxSubnetAddressPrefix')]",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 110,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('appNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http-rule",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "INTERNET",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-ssh-from-jumpbox-subnet",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "[parameters('jumpboxSubnetAddressPrefix')]",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('jumpboxNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "allow_ssh_access_from_architech_IP_range",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "INTERNET",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "comments": "The public IP address to access the application service.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('httpPublicIpName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('appDnsPrefix')]"
+                }
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "comments": "The public IP address to access the jumpbox VM via ssh.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('jumpboxPublicIpName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('jumpboxDnsPrefix')]"
+                }
+            },
+            "resources": [],
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vnetName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('vnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('appSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('appSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appNsgName'))]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[variables('dbSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('dbSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('dbNsgName'))]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[variables('jumpboxSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('jumpboxSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName'))]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "resources": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appNsgName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('dbNsgName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpboxNsgName'))]"
+            ]
+        }
+    ]
+}
